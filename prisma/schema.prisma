@@ -1,0 +1,88 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String
+  bio       String?
+  createdAt DateTime @default(now())
+
+  books     Book[]
+}
+
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+
+  authorId    String?
+  author      Author?  @relation(fields: [authorId], references: [id])
+
+  userBooks UserBook[]
+
+  createdAt   DateTime @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  userBooks UserBook[]
+
+  following Follow[] @relation("Follower")
+  followers Follow[] @relation("Following")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UserBook {
+  id     String @id @default(cuid())
+
+  userId String
+  bookId String
+
+  status BookStatus
+  rating Int?
+
+  review String? 
+
+  updatedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id])
+  book   Book   @relation(fields: [bookId], references: [id])
+
+  @@unique([userId, bookId])
+}
+
+model Follow {
+  id String @id @default(cuid())
+
+  followerId String
+  followingId String
+
+  follower User @relation("Follower", fields: [followerId], references: [id])
+  following User @relation("Following", fields: [followingId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([followerId, followingId])
+}
+
+enum BookStatus {
+  WANT_TO_READ
+  READING
+  READ
+}
