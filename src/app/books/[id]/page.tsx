@@ -22,6 +22,9 @@ export default async function BookPage({
   const {id} = await params;
   const book= await prisma.book.findUnique({
     where: { id},
+    include: {
+      author: true,
+    },
   });
   
   if (!book) notFound();
@@ -147,45 +150,37 @@ export default async function BookPage({
         },
     });
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-3xl font-bold">Book ID: {id}</h1>
-      <h2 className="text-2xl font-semibold">Book title: {book.title}</h2>
-      <div className="text-gray-600">
-          <div className="mt-2 text-gray-600">
-              {averageRating !== null ? (
-                <p>
-                  ⭐ {averageRating.toFixed(1)} ({ratings.length} ratings)
-                </p>
-              ) : (
-                <p>No ratings yet</p>
-              )}
-        </div>
-      </div>
-      <form action={changeShelf}>
-          <select name="status">
-            <option value="WANT_TO_READ">
-              Want to Read
-            </option>
+     <div className="max-w-3xl mx-auto p-6 space-y-8">
+      <section className="space-y-2">
+          <h1 className="text-3xl font-bold">{book.title} by {book.author?.name}</h1>
 
-            <option value="READING">
-              Reading
-            </option>
+          {averageRating !== null ? (
+            <p className="text-gray-600">
+              ⭐ {averageRating.toFixed(1)} ({ratings.length} ratings)
+            </p>
+          ) : (
+            <p className="text-gray-500">No ratings yet</p>
+          )}
+      </section>
+      <section className="border rounded-lg p-4 space-y-4">
+        <h2 className="font-semibold">Your reading status</h2>
 
-            <option value="READ">
-              Read
-            </option>
+        <form action={changeShelf} className="flex gap-2 items-center">
+          <select name="status" className="border rounded px-2 py-1">
+            <option value="WANT_TO_READ">Want to Read</option>
+            <option value="READING">Reading</option>
+            <option value="READ">Read</option>
           </select>
 
-          <button type="submit">
+          <button className="bg-black text-white px-3 py-1 rounded">
             Save
           </button>
-      </form>
-      <div className="mt-4 space-y-2 text-sm">
-         <form action={updateRating} className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">
-              Your rating:
-            </label>
+        </form>
+    </section>
+         <section className="border rounded-lg p-4 space-y-2">
+            <h2 className="font-semibold">Your rating</h2>
 
+          <form action={updateRating} className="flex items-center gap-2">
             <select
               name="rating"
               defaultValue={userBook?.rating ?? ""}
@@ -199,64 +194,51 @@ export default async function BookPage({
               <option value="5">5 ⭐⭐⭐⭐⭐</option>
             </select>
 
-            <button
-              type="submit"
-              className="bg-black text-white px-3 py-1 rounded"
-            >
+            <button className="bg-black text-white px-3 py-1 rounded">
               Save
             </button>
-        </form>
+          </form>
+        </section>
         
-        <form action={updateReview}>
-              
-            <textarea
-              name="review"
-              defaultValue={userBook?.review ?? ""}
-              rows={5}
-              className="w-full border rounded p-2"
-              placeholder="Write your thoughts about this book..."
-            />
+        <section className="border rounded-lg p-4 space-y-2">
+          <h2 className="font-semibold">Your review</h2>
 
-            <button
-              type="submit"
-              className="mt-2 bg-black text-white px-4 py-2 rounded"
-            >
-              Save Review
-            </button>
-      </form>
-      {userBook?.review && (
-        <div className="mt-4">
-          <h3 className="font-semibold">Your Review</h3>
-          <p className="mt-2">{userBook.review}</p>
-        </div>
-      )}
-      </div>
-      <div className="mt-10">
-          <h2 className="text-xl font-bold mb-4">
-            Community Reviews
-          </h2>
+            <form action={updateReview} className="space-y-2">
+              <textarea
+                name="review"
+                defaultValue={userBook?.review ?? ""}
+                rows={5}
+                className="w-full border rounded p-2"
+                placeholder="Write your thoughts..."
+              />
 
-          {reviews.length === 0 ? (
-            <p className="text-gray-500">No reviews yet</p>
-          ) : (
-            <div className="space-y-4">
-              {reviews.map((r) => (
-                <div
-                  key={r.id}
-                  className="border p-3 rounded"
-                >
-                  <p className="text-sm text-gray-500">
-                    {r.user.name}
-                  </p>
+              <button className="bg-black text-white px-4 py-2 rounded">
+                Save Review
+              </button>
+            </form>
 
-                  <p className="mt-1">
-                    {r.review}
-                  </p>
-                </div>
-              ))}
+            {userBook?.review && (
+              <div className="mt-3 p-3 bg-gray-50 rounded">
+                <p className="font-semibold">Your saved review</p>
+                <p className="text-gray-700 mt-1">{userBook.review}</p>
+              </div>
+            )}
+      </section>
+      
+      <section className="space-y-3">
+        <h2 className="text-xl font-bold">Community Reviews</h2>
+
+        {reviews.length === 0 ? (
+          <p className="text-gray-500">No reviews yet</p>
+        ) : (
+          reviews.map((r) => (
+            <div key={r.id} className="border rounded p-3">
+              <p className="text-sm text-gray-500">{r.user.name}</p>
+              <p className="mt-1">{r.review}</p>
             </div>
-          )}
-        </div>
+          ))
+        )}
+      </section>
   </div>
     
   );

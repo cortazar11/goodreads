@@ -21,6 +21,18 @@ export default async function Navbar() {
           <Link href="/authors" className="hover:underline">
             Authors
           </Link>
+          <form action="/search">
+              <input
+                type="text"
+                name="q"
+                placeholder="Search books..."
+                className="border px-2 py-1"
+              />
+
+              <button type="submit">
+                {/* Search */}
+              </button>
+          </form>
         </div>
         
 

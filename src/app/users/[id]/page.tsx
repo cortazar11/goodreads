@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 
 
 async function toggleFollow(targetUserId: string) {
@@ -98,7 +99,20 @@ export default async function Page({
       <h1>{profileUser.name}</h1>
 
       <div>
-        {followersCount} followers · {followingCount} following
+        {/* {followersCount} followers · {followingCount} following */}
+         <Link
+          href={`/users/${profileUser.id}/followers`}
+          className="hover:underline"
+        >
+        {followersCount} followers
+        </Link>
+
+        <Link
+          href={`/users/${profileUser.id}/following`}
+          className="hover:underline"
+        >
+          {followingCount} following
+        </Link>
       </div>
 
       {/* FOLLOW BUTTON (depends on relationship) */}

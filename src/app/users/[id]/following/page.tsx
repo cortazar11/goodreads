@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
-export default async function FollowersPage({
+export default async function FollowingPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -17,35 +17,35 @@ export default async function FollowersPage({
   if (!profileUser) notFound();
 
   // 2. Get followers (users who follow this profileUser)
-  const followers = await prisma.follow.findMany({
+  const following = await prisma.follow.findMany({
     where: {
-      followingId: profileUser.id,
+      followerId: profileUser.id,
     },
     include: {
-      follower: true, // the actual user who follows
+      following: true, // the user being followed
     },
   });
 
   return (
     <div className="max-w-xl mx-auto p-6 space-y-4">
       <h1 className="text-2xl font-bold">
-        {`${profileUser.name}'s followers`}
+        {`${profileUser.name}'s following`}
       </h1>
 
       <div className="space-y-2">
-        {followers.length === 0 ? (
-          <p className="text-gray-500">No followers yet</p>
+        {following.length === 0 ? (
+          <p className="text-gray-500">No one following yet</p>
         ) : (
-          followers.map((f) => (
+          following.map((f) => (
             <div
               key={f.id}
               className="border p-2 rounded"
             >
                <Link
-                  href={`/users/${f.follower.id}`}
+                  href={`/users/${f.following.id}`}
                   className="hover:underline"
                 >
-                  {f.follower.name}
+                  {f.following.name}
             </Link>
             </div>
           ))
