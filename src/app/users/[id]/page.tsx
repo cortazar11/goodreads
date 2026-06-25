@@ -1,50 +1,12 @@
-import { revalidatePath } from "next/cache";
+import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+
+import { getUserById, getFollowStats } from "@/lib/users";
 import { prisma } from "@/lib/prisma";
-import { notFound } from "next/navigation";
+
+import { toggleFollow } from "@/actions/follow";
 import Link from "next/link";
-
-
-async function toggleFollow(targetUserId: string) {
-  "use server";
-
-  const session = await getServerSession(authOptions);
-
-  if (!session?.user?.email) return;
-
-  const currentUser = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-
-  if (!currentUser) return;
-
-  
-
-  const existing = await prisma.follow.findUnique({
-    where: {
-      followerId_followingId: {
-        followerId: currentUser.id,
-        followingId: targetUserId,
-      },
-    },
-  });
-
-  if (existing) {
-    await prisma.follow.delete({
-      where: { id: existing.id },
-    });
-  } else {
-    await prisma.follow.create({
-      data: {
-        followerId: currentUser.id,
-        followingId: targetUserId,
-      },
-    });
-  }
-
-  await revalidatePath(`/users/${targetUserId}`);
-}
 
 export default async function Page({
   params,
@@ -53,35 +15,23 @@ export default async function Page({
 }) {
   const { id } = await params;
 
-  // 1. profile user (the page you are visiting)
-  const profileUser = await prisma.user.findUnique({
-    where: { id },
-  });
-
+  // 1. profile user
+  const profileUser = await getUserById(id);
   if (!profileUser) return notFound();
-  const followersCount = await prisma.follow.count({
-      where: {
-        followingId: profileUser.id,
-      },
-  });
-  const followingCount = await prisma.follow.count({
-      where: {
-        followerId: profileUser.id,
-      },
-  });
 
-  // 2. current logged-in user
+  // 2. follow stats
+  const { followers, following } = await getFollowStats(id);
+
+  // 3. current user
   const session = await getServerSession(authOptions);
 
-  const currentUserEmail = session?.user?.email;
-
-  const currentUser = currentUserEmail
+  const currentUser = session?.user?.email
     ? await prisma.user.findUnique({
-        where: { email: currentUserEmail },
+        where: { email: session.user.email },
       })
     : null;
 
-  // 3. check follow state
+  // 4. follow state
   const isFollowing = currentUser
     ? await prisma.follow.findUnique({
         where: {
@@ -94,33 +44,32 @@ export default async function Page({
     : null;
 
   return (
-    <div>
-      {/* PROFILE USER (NOT YOU) */}
-      <h1>{profileUser.name}</h1>
+    <div className="max-w-2xl mx-auto p-6 space-y-4">
 
-      <div>
-        {/* {followersCount} followers · {followingCount} following */}
-         <Link
-          href={`/users/${profileUser.id}/followers`}
-          className="hover:underline"
-        >
-        {followersCount} followers
+      {/* HEADER */}
+      <h1 className="text-2xl font-bold">
+        {profileUser.name}
+      </h1>
+
+      {/* STATS */}
+      <div className="flex gap-4 text-sm text-gray-600">
+        <Link href={`/users/${id}/followers`}>
+          {followers} followers
         </Link>
 
-        <Link
-          href={`/users/${profileUser.id}/following`}
-          className="hover:underline"
-        >
-          {followingCount} following
+        <Link href={`/users/${id}/following`}>
+          {following} following
         </Link>
       </div>
 
-      {/* FOLLOW BUTTON (depends on relationship) */}
-      <form action={toggleFollow.bind(null, profileUser.id)}>
-        <button>
-          {isFollowing ? "Unfollow" : "Follow"}
-        </button>
-      </form>
+      {/* FOLLOW BUTTON */}
+      {currentUser?.id !== profileUser.id && (
+        <form action={toggleFollow.bind(null, profileUser.id)}>
+          <button className="px-3 py-1 border rounded">
+            {isFollowing ? "Unfollow" : "Follow"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }

@@ -1,7 +1,28 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { toggleFollow } from "@/actions/follow";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 export default async function UsersPage() {
+
+  const session = await getServerSession(authOptions);
+  const currentUser = session?.user?.email
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+      })
+    : null;
+    const following = currentUser
+      ? await prisma.follow.findMany({
+          where: {
+            followerId: currentUser.id,
+          },
+          select: {
+            followingId: true,
+          },
+        })
+      : [];
+    const followingSet = new Set(following.map(f => f.followingId));
   const users = await prisma.user.findMany({
     orderBy: { name: "asc" },
   });
@@ -11,25 +32,26 @@ export default async function UsersPage() {
       <h1 className="text-2xl font-bold">Users</h1>
 
       <div className="space-y-3">
-        {users.map((user) => (
-          <div
-            key={user.id}
-            className="border rounded-lg p-4 flex justify-between items-center"
-          >
-            <div>
-              <Link
-                href={`/users/${user.id}`}
-                className="font-medium hover:underline"
-              >
-                {user.name}
-              </Link>
+        {users.map((user) => {
+            const isFollowing = followingSet.has(user.id);
 
-              <p className="text-sm text-gray-500">
-                {user.email}
-              </p>
-            </div>
-          </div>
-        ))}
+            return (
+              <div key={user.id} className="border p-4 rounded flex justify-between">
+                
+                <Link href={`/users/${user.id}`}>
+                  <p className="font-medium">{user.name}</p>
+                </Link>
+
+                {currentUser?.id !== user.id && (
+                  <form action={toggleFollow.bind(null, user.id)}>
+                    <button className="px-3 py-1 border rounded">
+                      {isFollowing ? "Following" : "Follow"}
+                    </button>
+                  </form>
+                )}
+              </div>
+            );
+        })}
       </div>
     </div>
   );
