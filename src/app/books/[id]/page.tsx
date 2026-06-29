@@ -270,3 +270,5 @@ export default async function BookPage({
     </div>
   );
 }
+
+// This function is used to generate static paths for all books in the database.
